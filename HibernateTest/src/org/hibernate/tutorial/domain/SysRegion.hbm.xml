@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+        "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+        "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping package="org.hibernate.tutorial.domain">
+
+    <class name="SysRegion" table="sys_region">
+        <id name="id" column="id">
+            <generator class="native"/>
+        </id>
+        <property name="name"/>
+        <property name="districtCode"/>
+        
+        <set name="children" inverse="true" cascade="all" lazy="true">
+            <key column="pid"/>
+            <one-to-many class="org.hibernate.tutorial.domain.SysRegion"/>
+        </set>
+        
+        <many-to-one name="parent" column="pid" class="org.hibernate.tutorial.domain.SysRegion" insert="true" update="false" cascade="all">
+        </many-to-one>
+    </class>
+
+</hibernate-mapping>
