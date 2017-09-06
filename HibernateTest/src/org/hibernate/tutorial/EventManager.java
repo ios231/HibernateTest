@@ -325,13 +325,3 @@ public class EventManager {
 			session.getTransaction().commit();
 	    }
 }
-
-
-   class RegionComparatorByDistrictCode implements Comparator<SysRegion>{
-
-	@Override
-	public int compare(SysRegion o1, SysRegion o2) {
-		// TODO Auto-generated method stub
-		return o1.getDistrictCode().compareTo(o2.getDistrictCode());
-	}
-   }
