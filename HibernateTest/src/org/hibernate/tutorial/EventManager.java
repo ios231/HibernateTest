@@ -16,7 +16,10 @@ import java.util.TreeSet;
 import org.hibernate.Session;
 import org.hibernate.tutorial.domain.Event;
 import org.hibernate.tutorial.domain.Person;
+import org.hibernate.tutorial.domain.Region;
+import org.hibernate.tutorial.domain.Student;
 import org.hibernate.tutorial.domain.SysRegion;
+import org.hibernate.tutorial.util.AnnoHibernateUtil;
 import org.hibernate.tutorial.util.HibernateUtil;
 import org.jsoup.Jsoup;
 import org.jsoup.helper.StringUtil;
@@ -56,8 +59,22 @@ public class EventManager {
             mgr.addPersonToEvent(personId, eventId);
             System.out.println("Added person " + personId + " to event " + eventId);*/
 	        //mgr.testRegion();
-	        mgr.grabRegionData();
-	        HibernateUtil.getSessionFactory().close();
+	        //mgr.grabRegionData();
+	        //mgr.annoStudent();
+	        mgr.grabRegionData2();
+	        //HibernateUtil.getSessionFactory().close();
+	        AnnoHibernateUtil.getSessionFactory().close();
+	    }
+	 
+	    private void annoStudent(){
+	    	 Session session = AnnoHibernateUtil.getSessionFactory().getCurrentSession();
+		     session.beginTransaction();
+
+	    	 Student aStudent = new Student();
+	    	 aStudent.setName("zhaoliu");
+	    	 session.save(aStudent);
+	    	 
+	    	 session.getTransaction().commit();
 	    }
 
 	    private void createAndStoreEvent(String title, Date theDate) {
@@ -324,4 +341,116 @@ public class EventManager {
 			}
 			session.getTransaction().commit();
 	    }
+	    
+	    private void grabRegionData2() throws IOException{
+	    	Session session = AnnoHibernateUtil.getSessionFactory().getCurrentSession();
+	        session.beginTransaction();
+	        
+	    	URL url = new URL("http://www.stats.gov.cn/tjsj/tjbz/xzqhdm/201703/t20170310_1471429.html");
+	    	//File in = new File("C:\\Users\\Administrator\\Desktop\\xzqhbm.html");
+	    	//Document doc = Jsoup.parse(in, "utf-8");
+			Document doc = Jsoup.parse(url, 30000);
+			Element body = doc.body();
+			Elements ps = body.select("p.MsoNormal");
+			Elements els = null;
+			Element el = null;
+			String str = "";
+			Region region = null;
+			Set<Region> children = null;
+			Region child = null;
+			boolean isChildEnd = false;
+			region = new Region();
+			//children = new HashSet<SysRegion>();
+			children = new TreeSet<Region>();
+			
+			Set<Region> childChildren = null;
+			Region subChild = null;
+			for (Element p : ps){
+				//省、直辖市、自治区节点
+				if (p.child(0).tag().getName().equalsIgnoreCase("b") || p.child(1).tag().getName().equalsIgnoreCase("b")){
+					els = p.select("span");
+					if (isChildEnd) {
+						region.setChildren(children);
+						session.save(region);
+						isChildEnd = false;
+						region = new Region();
+						//children = new HashSet<SysRegion>();
+						children = new TreeSet<Region>();
+					}
+					for (Element e: els){
+						if (e.hasAttr("lang")) { //编码
+							str = e.ownText().replaceAll(Jsoup.parse("&nbsp;").text(), " ").replaceAll("\\s*", "").trim();
+							if (!StringUtil.isBlank(str)){
+								region.setDistrictCode(str);
+						    }
+						} else { //地区名称
+							str = e.ownText().replaceAll(Jsoup.parse("&nbsp;").text(), " ").replaceAll("\\s*", "").trim();
+							if (!StringUtil.isBlank(str)){
+								region.setName(str);
+						    }
+						}
+					}
+					if (p.nextElementSibling() != null && 
+							(p.nextElementSibling().child(0).tag().getName().equalsIgnoreCase("b")|| 
+									p.nextElementSibling().child(1).tag().getName().equalsIgnoreCase("b"))){
+						isChildEnd = true;
+					}
+					//最后一个地区
+					if (p.nextElementSibling() == null){
+						region.setChildren(children);
+						session.save(region);
+					}
+				} else { //地级市、直辖市下的区、县等
+					els = p.getElementsByTag("span");
+					el = els.get(1);
+					if (el.hasAttr("lang")) { //编码
+						str = el.ownText().replaceAll(Jsoup.parse("&nbsp;").text(), " ").replaceAll("\\s*", "").trim();
+						if (str.endsWith("00")){  //地市级节点
+							child = new Region();
+							childChildren =  new TreeSet<Region>();
+							if (!StringUtil.isBlank(str)){
+								child.setDistrictCode(str);
+						    }
+							el = el.nextElementSibling();//下一兄弟节点，地区名称
+							str = el.ownText().replaceAll(Jsoup.parse("&nbsp;").text(), " ").replaceAll("\\s*", "").trim();
+							if (!StringUtil.isBlank(str)){
+								child.setName(str);
+						    }
+							child.setParent(region);
+							child.setChildren(childChildren);
+							children.add(child);
+						} else {  //区县级节点
+							subChild =  new Region();
+							if (!StringUtil.isBlank(str)){
+								subChild.setDistrictCode(str);
+						    }
+							el = el.nextElementSibling();//下一兄弟节点，地区名称
+							str = el.ownText().replaceAll(Jsoup.parse("&nbsp;").text(), " ").replaceAll("\\s*", "").trim();
+							if (!StringUtil.isBlank(str)){
+								subChild.setName(str);
+						    }
+							subChild.setParent(child);
+							childChildren.add(subChild);
+						}
+						
+					}
+					//省级地区结束
+					if(p.nextElementSibling().child(0).tag().getName().equalsIgnoreCase("b")
+							||p.nextElementSibling().child(1).tag().getName().equalsIgnoreCase("b")){
+						isChildEnd = true;
+					}
+				}
+			}
+			session.getTransaction().commit();
+	    }
 }
+
+
+   class RegionComparatorByDistrictCode implements Comparator<SysRegion>{
+
+	@Override
+	public int compare(SysRegion o1, SysRegion o2) {
+		// TODO Auto-generated method stub
+		return o1.getDistrictCode().compareTo(o2.getDistrictCode());
+	}
+   }
