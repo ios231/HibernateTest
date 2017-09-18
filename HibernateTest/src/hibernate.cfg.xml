@@ -34,6 +34,9 @@
         <mapping resource="org/hibernate/tutorial/domain/Event.hbm.xml"/>
         <mapping resource="org/hibernate/tutorial/domain/Person.hbm.xml"/>
         <mapping resource="org/hibernate/tutorial/domain/SysRegion.hbm.xml"/>
+        <!-- <mapping resource="org/hibernate/tutorial/domain/Student.hbm.xml"/> -->
+        <mapping class="org.hibernate.tutorial.domain.Student"/>
+        <mapping class="org.hibernate.tutorial.domain.Region"/> 
 
     </session-factory>
 
