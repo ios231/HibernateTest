@@ -61,7 +61,8 @@ public class EventManager {
 	        //mgr.testRegion();
 	        //mgr.grabRegionData();
 	        //mgr.annoStudent();
-	        mgr.grabRegionData2();
+	        //mgr.grabRegionData2();
+			mgr.seleRegion();
 	        //HibernateUtil.getSessionFactory().close();
 	        AnnoHibernateUtil.getSessionFactory().close();
 	    }
@@ -442,6 +443,18 @@ public class EventManager {
 				}
 			}
 			session.getTransaction().commit();
+	    }
+		
+		private void seleRegion(){
+	    	Session session = AnnoHibernateUtil.getSessionFactory().getCurrentSession();
+	        session.beginTransaction();
+	        
+	        List<Region> list = session.createQuery(" from Region where pid = :pid").setParameter("pid", "4028801e5e93f5be015e93f5c4da0014").list();
+	        for (Region region : list){
+	        	System.out.println(region.getName()+":"+region.getDistrictCode());
+	        }
+	        
+	        session.getTransaction().commit();
 	    }
 }
 
